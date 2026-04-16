@@ -1,4 +1,4 @@
-const MovimentacaoDAO = require('../models/movimentacoesModel');
+const MovimentacaoDAO = require('../models/movimentacaoModel');
 
 module.exports = (app) => {
     // Buscar movimentações de um caixa aberto
