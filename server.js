@@ -5,6 +5,7 @@ const path = require('path')
 const cors = require('cors')
 
 app.use(cors())
+app.use(express.json())
 
 consign()
     .include('src/controllers')
