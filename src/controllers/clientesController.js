@@ -1,29 +1,29 @@
-const ProfissionalDAO = require('../models/profissionaisModel');
+const ClienteDAO = require('../models/clientesModel');
 
 module.exports = (app) => {
 
-    // LISTAR TODOS OS PROFISSIONAIS
-    app.get("/profissional", async (req, res) => {
+    // LISTAR TODOS OS CLIENTES
+    app.get("/cliente", async (req, res) => {
         try {
-            const lista = await ProfissionalDAO.consultarTodos();
+            const lista = await ClienteDAO.consultarTodos();
             res.json(lista);
         } catch (error) {
             res.status(500).json({ 
                 success: false, 
-                error: "Erro ao buscar profissionais", 
+                error: "Erro ao buscar clientes", 
                 details: error.message 
             });
         }
     });
 
-    // BUSCAR UM PROFISSIONAL POR ID
-    app.get("/profissional/:id", async (req, res) => {
+    // BUSCAR UM CLIENTE POR ID
+    app.get("/cliente/:id", async (req, res) => {
         try {
-            const profissional = await ProfissionalDAO.consultarUm(req.params.id);
-            if (profissional) {
-                res.json(profissional);
+            const cliente = await ClienteDAO.consultarUm(req.params.id);
+            if (cliente) {
+                res.json(cliente);
             } else {
-                res.status(404).json({ success: false, msg: "Profissional não encontrado" });
+                res.status(404).json({ success: false, msg: "Cliente não encontrado" });
             }
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
@@ -31,26 +31,21 @@ module.exports = (app) => {
     });
 
     // SALVAR (CADASTRO OU EDIÇÃO)
-    app.post('/profissional', async (req, res) => {
-        const { id, nome, quali_curso, unidade_id } = req.body;
+    app.post('/cliente', async (req, res) => {
+        const { id, nome, telefone, aniversario } = req.body;
 
         try {
-            // Validação simples: Profissional precisa estar em uma unidade
-            if (!unidade_id) {
-                return res.status(400).json({ success: false, msg: "É necessário informar o ID da unidade." });
-            }
-
             if (!id) {
                 // Cadastro Novo
-                const novo = await ProfissionalDAO.cadastrar(nome, quali_curso, unidade_id);
-                res.status(201).json({ success: true, msg: "Profissional cadastrado!", data: novo });
+                const novo = await ClienteDAO.cadastrar(nome, telefone, aniversario);
+                res.status(201).json({ success: true, msg: "Cliente cadastrado!", data: novo });
             } else {
                 // Atualização
-                const editado = await ProfissionalDAO.atualizar(id, nome, quali_curso, unidade_id);
-                if (editada) {
-                    res.json({ success: true, msg: "Profissional atualizado!", data: editado });
+                const editado = await ClienteDAO.atualizar(id, nome, telefone, aniversario);
+                if (editado) {
+                    res.json({ success: true, msg: "Cliente atualizado!", data: editado });
                 } else {
-                    res.status(404).json({ success: false, msg: "Profissional não encontrado." });
+                    res.status(404).json({ success: false, msg: "Cliente não encontrado." });
                 }
             }
         } catch (error) {
@@ -58,19 +53,19 @@ module.exports = (app) => {
         }
     });
 
-    // EXCLUIR PROFISSIONAL
-    app.delete("/profissional/:id", async (req, res) => {
+    // EXCLUIR CLIENTE
+    app.delete("/cliente/:id", async (req, res) => {
         try {
-            const rowCount = await ProfissionalDAO.excluir(req.params.id);
+            const rowCount = await ClienteDAO.excluir(req.params.id);
             if (rowCount > 0) {
-                res.json({ success: true, msg: "Profissional removido com sucesso!" });
+                res.json({ success: true, msg: "Cliente removido com sucesso!" });
             } else {
-                res.status(404).json({ success: false, msg: "Profissional não encontrado." });
+                res.status(404).json({ success: false, msg: "Cliente não encontrado." });
             }
         } catch (error) {
             res.status(400).json({ 
                 success: false, 
-                msg: "Erro ao excluir: Verifique se este profissional possui agendamentos ativos.",
+                msg: "Erro ao excluir: Verifique se este cliente possui agendamentos ou vendas vinculadas.",
                 details: error.message
             });
         }
