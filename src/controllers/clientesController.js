@@ -1,3 +1,4 @@
+const { authMiddleware, requireRole } = require('../models/authModel');
 const { ClienteDAO, AnamneseDAO, CreditoDAO } = require('../models/clientesModel');
 
 module.exports = (app) => {
@@ -7,7 +8,7 @@ module.exports = (app) => {
     // ============================================================
 
     // LISTAR TODAS
-    app.get('/clientes', async (req, res) => {
+    app.get('/clientes', authMiddleware, async (req, res) => {
         try {
             const lista = await ClienteDAO.consultarTodos();
             res.json(lista);
@@ -17,7 +18,7 @@ module.exports = (app) => {
     });
 
     // BUSCAR UMA
-    app.get('/clientes/:id', async (req, res) => {
+    app.get('/clientes/:id', authMiddleware, async (req, res) => {
         try {
             const cliente = await ClienteDAO.consultarUm(req.params.id);
             if (!cliente) return res.status(404).json({ success: false, msg: 'Cliente não encontrada.' });
@@ -28,7 +29,7 @@ module.exports = (app) => {
     });
 
     // BUSCAR POR NOME OU TELEFONE (query param: ?termo=ana)
-    app.get('/clientes/buscar/:termo', async (req, res) => {
+    app.get('/clientes/buscar/:termo', authMiddleware, async (req, res) => {
         try {
             const lista = await ClienteDAO.buscar(req.params.termo);
             res.json(lista);
@@ -39,7 +40,7 @@ module.exports = (app) => {
     });
 
     // ANIVERSARIANTES DO MÊS (query param: ?mes=6 — padrão: mês atual)
-    app.get('/clientes/aniversariantes', async (req, res) => {
+    app.get('/clientes/aniversariantes', authMiddleware, async (req, res) => {
         try {
             const lista = await ClienteDAO.aniversariantes(req.query.mes);
             res.json({ success: true, total: lista.length, data: lista });
@@ -49,7 +50,7 @@ module.exports = (app) => {
     });
 
     // CLIENTES INATIVAS HÁ X DIAS (query param: ?dias=60)
-    app.get('/clientes/inativas', async (req, res) => {
+    app.get('/clientes/inativas', authMiddleware, async (req, res) => {
         try {
             const dias = parseInt(req.query.dias) || 60;
             const lista = await ClienteDAO.inativos(dias);
@@ -60,7 +61,7 @@ module.exports = (app) => {
     });
 
     // CADASTRAR
-    app.post('/clientes', async (req, res) => {
+    app.post('/clientes', authMiddleware, async (req, res) => {
         try {
             const nova = await ClienteDAO.cadastrar(req.body);
             res.status(201).json({ success: true, msg: 'Cliente cadastrada!', data: nova });
@@ -71,7 +72,7 @@ module.exports = (app) => {
     });
 
     // ATUALIZAR
-    app.put('/clientes/:id', async (req, res) => {
+    app.put('/clientes/:id', authMiddleware, async (req, res) => {
         try {
             const editada = await ClienteDAO.atualizar(req.params.id, req.body);
             if (!editada) return res.status(404).json({ success: false, msg: 'Cliente não encontrada.' });
@@ -83,7 +84,7 @@ module.exports = (app) => {
     });
 
     // INATIVAR (soft delete — não apaga do banco)
-    app.put('/clientes/:id/inativar', async (req, res) => {
+    app.put('/clientes/:id/inativar', authMiddleware, async (req, res) => {
         try {
             await ClienteDAO.inativar(req.params.id);
             res.json({ success: true, msg: 'Cliente inativada com sucesso!' });
@@ -94,7 +95,7 @@ module.exports = (app) => {
     });
 
     // EXCLUIR (hard delete — use com cuidado)
-    app.delete('/clientes/:id', async (req, res) => {
+    app.delete('/clientes/:id', authMiddleware, async (req, res) => {
         try {
             const rowCount = await ClienteDAO.excluir(req.params.id);
             if (rowCount > 0) return res.json({ success: true, msg: 'Cliente removida com sucesso!' });
@@ -114,7 +115,7 @@ module.exports = (app) => {
     // ============================================================
 
     // CONSULTAR ANAMNESE DA CLIENTE
-    app.get('/clientes/:id/anamnese', async (req, res) => {
+    app.get('/clientes/:id/anamnese', authMiddleware, async (req, res) => {
         try {
             const anamnese = await AnamneseDAO.consultarDaCliente(req.params.id);
             if (!anamnese) return res.status(404).json({ success: false, msg: 'Anamnese não preenchida ainda.' });
@@ -125,7 +126,7 @@ module.exports = (app) => {
     });
 
     // SALVAR ANAMNESE (cria ou atualiza — upsert)
-    app.post('/clientes/:id/anamnese', async (req, res) => {
+    app.post('/clientes/:id/anamnese', authMiddleware, async (req, res) => {
         try {
             const { user_id, ...dados } = req.body;
             const anamnese = await AnamneseDAO.salvar(req.params.id, dados, user_id);
@@ -142,7 +143,7 @@ module.exports = (app) => {
     // ============================================================
 
     // HISTÓRICO DE CRÉDITOS
-    app.get('/clientes/:id/creditos', async (req, res) => {
+    app.get('/clientes/:id/creditos', authMiddleware, async (req, res) => {
         try {
             const historico = await CreditoDAO.historico(req.params.id);
             res.json(historico);
@@ -152,7 +153,7 @@ module.exports = (app) => {
     });
 
     // ADICIONAR CRÉDITO OU DÉBITO MANUAL
-    app.post('/clientes/:id/creditos', async (req, res) => {
+    app.post('/clientes/:id/creditos', authMiddleware, async (req, res) => {
         try {
             const credito = await CreditoDAO.adicionar({
                 cliente_id: req.params.id,

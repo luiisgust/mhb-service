@@ -1,9 +1,10 @@
 const UnidadeDAO = require('../models/unidadesModel');
+const { authMiddleware, requireRole } = require('../models/authModel');
 
 module.exports = (app) => {
 
     // LISTAR TODAS
-    app.get('/unidades', async (req, res) => {
+    app.get('/unidades', authMiddleware, async (req, res) => {
         try {
             const lista = await UnidadeDAO.consultarTodos();
             res.json(lista);
@@ -13,7 +14,7 @@ module.exports = (app) => {
     });
 
     // BUSCAR UMA
-    app.get('/unidades/:id', async (req, res) => {
+    app.get('/unidades/:id', authMiddleware, async (req, res) => {
         try {
             const unidade = await UnidadeDAO.consultarUm(req.params.id);
             if (!unidade) return res.status(404).json({ success: false, msg: 'Unidade não encontrada.' });
@@ -23,8 +24,8 @@ module.exports = (app) => {
         }
     });
 
-    // CADASTRAR
-    app.post('/unidades', async (req, res) => {
+    // CADASTRAR (apenas admin/gerente)
+    app.post('/unidades', authMiddleware, requireRole('admin', 'gerente'), async (req, res) => {
         const { nome, endereco, cidade } = req.body;
 
         if (!nome) return res.status(400).json({ success: false, msg: 'O campo nome é obrigatório.' });
@@ -37,8 +38,8 @@ module.exports = (app) => {
         }
     });
 
-    // ATUALIZAR
-    app.put('/unidades/:id', async (req, res) => {
+    // ATUALIZAR (apenas admin/gerente)
+    app.put('/unidades/:id', authMiddleware, requireRole('admin', 'gerente'), async (req, res) => {
         const { nome, endereco, cidade, ativa } = req.body;
 
         if (!nome) return res.status(400).json({ success: false, msg: 'O campo nome é obrigatório.' });
@@ -52,8 +53,8 @@ module.exports = (app) => {
         }
     });
 
-    // EXCLUIR
-    app.delete('/unidades/:id', async (req, res) => {
+    // EXCLUIR (apenas admin)
+    app.delete('/unidades/:id', authMiddleware, requireRole('admin'), async (req, res) => {
         try {
             const rowCount = await UnidadeDAO.excluir(req.params.id);
             if (rowCount > 0) return res.json({ success: true, msg: 'Unidade removida com sucesso!' });
@@ -67,7 +68,7 @@ module.exports = (app) => {
         }
     });
 
-    // STATUS DO MÓDULO
+    // STATUS
     app.get('/unidades-status', (req, res) => {
         res.json({ modulo: 'Unidades', online: true, database: 'PostgreSQL' });
     });

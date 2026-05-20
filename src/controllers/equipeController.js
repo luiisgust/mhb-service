@@ -1,3 +1,4 @@
+const { authMiddleware, requireRole } = require('../models/authModel');
 const { ProfissionalDAO, AusenciaDAO, MetaDAO, ComissaoDAO } = require('../models/equipeModel');
 
 module.exports = (app) => {
@@ -7,7 +8,7 @@ module.exports = (app) => {
     // ============================================================
 
     // LISTAR TODAS (query param: ?todos=true para incluir inativas)
-    app.get('/profissionais', async (req, res) => {
+    app.get('/profissionais', authMiddleware, async (req, res) => {
         try {
             const apenasAtivos = req.query.todos !== 'true';
             const lista = await ProfissionalDAO.consultarTodos(apenasAtivos);
@@ -18,7 +19,7 @@ module.exports = (app) => {
     });
 
     // BUSCAR UMA
-    app.get('/profissionais/:id', async (req, res) => {
+    app.get('/profissionais/:id', authMiddleware, async (req, res) => {
         try {
             const profissional = await ProfissionalDAO.consultarUm(req.params.id);
             if (!profissional) return res.status(404).json({ success: false, msg: 'Profissional não encontrada.' });
@@ -29,7 +30,7 @@ module.exports = (app) => {
     });
 
     // LISTAR APENAS APTAS PARA CURSOS
-    app.get('/profissionais-aptas-cursos', async (req, res) => {
+    app.get('/profissionais-aptas-cursos', authMiddleware, async (req, res) => {
         try {
             const lista = await ProfissionalDAO.consultarAptas();
             res.json(lista);
@@ -39,7 +40,7 @@ module.exports = (app) => {
     });
 
     // LISTAR PROCEDIMENTOS DE UMA PROFISSIONAL
-    app.get('/profissionais/:id/procedimentos', async (req, res) => {
+    app.get('/profissionais/:id/procedimentos', authMiddleware, async (req, res) => {
         try {
             const lista = await ProfissionalDAO.consultarProcedimentos(req.params.id);
             res.json(lista);
@@ -49,7 +50,7 @@ module.exports = (app) => {
     });
 
     // CADASTRAR
-    app.post('/profissionais', async (req, res) => {
+    app.post('/profissionais', authMiddleware, async (req, res) => {
         try {
             const nova = await ProfissionalDAO.cadastrar(req.body);
             res.status(201).json({ success: true, msg: 'Profissional cadastrada!', data: nova });
@@ -60,7 +61,7 @@ module.exports = (app) => {
     });
 
     // ATUALIZAR
-    app.put('/profissionais/:id', async (req, res) => {
+    app.put('/profissionais/:id', authMiddleware, async (req, res) => {
         try {
             const editada = await ProfissionalDAO.atualizar(req.params.id, req.body);
             if (!editada) return res.status(404).json({ success: false, msg: 'Profissional não encontrada.' });
@@ -72,7 +73,7 @@ module.exports = (app) => {
     });
 
     // VINCULAR PROCEDIMENTO À PROFISSIONAL
-    app.post('/profissionais/:id/procedimentos', async (req, res) => {
+    app.post('/profissionais/:id/procedimentos', authMiddleware, async (req, res) => {
         const { procedimento_id } = req.body;
 
         if (!procedimento_id) {
@@ -88,7 +89,7 @@ module.exports = (app) => {
     });
 
     // DESVINCULAR PROCEDIMENTO DA PROFISSIONAL
-    app.delete('/profissionais/:id/procedimentos/:procedimento_id', async (req, res) => {
+    app.delete('/profissionais/:id/procedimentos/:procedimento_id', authMiddleware, async (req, res) => {
         try {
             const rowCount = await ProfissionalDAO.desvincularProcedimento(req.params.id, req.params.procedimento_id);
             if (rowCount > 0) return res.json({ success: true, msg: 'Procedimento desvinculado!' });
@@ -99,7 +100,7 @@ module.exports = (app) => {
     });
 
     // EXCLUIR
-    app.delete('/profissionais/:id', async (req, res) => {
+    app.delete('/profissionais/:id', authMiddleware, async (req, res) => {
         try {
             const rowCount = await ProfissionalDAO.excluir(req.params.id);
             if (rowCount > 0) return res.json({ success: true, msg: 'Profissional removida com sucesso!' });
@@ -119,7 +120,7 @@ module.exports = (app) => {
     // ============================================================
 
     // LISTAR TODAS (query param: ?profissional_id=1 para filtrar)
-    app.get('/ausencias', async (req, res) => {
+    app.get('/ausencias', authMiddleware, async (req, res) => {
         try {
             const profissional_id = req.query.profissional_id || null;
             const lista = await AusenciaDAO.consultarTodos(profissional_id);
@@ -130,7 +131,7 @@ module.exports = (app) => {
     });
 
     // CADASTRAR
-    app.post('/ausencias', async (req, res) => {
+    app.post('/ausencias', authMiddleware, async (req, res) => {
         try {
             const nova = await AusenciaDAO.cadastrar(req.body);
             res.status(201).json({ success: true, msg: 'Ausência registrada!', data: nova });
@@ -141,7 +142,7 @@ module.exports = (app) => {
     });
 
     // EXCLUIR
-    app.delete('/ausencias/:id', async (req, res) => {
+    app.delete('/ausencias/:id', authMiddleware, async (req, res) => {
         try {
             const rowCount = await AusenciaDAO.excluir(req.params.id);
             if (rowCount > 0) return res.json({ success: true, msg: 'Ausência removida!' });
@@ -157,7 +158,7 @@ module.exports = (app) => {
     // ============================================================
 
     // CONSULTAR METAS DO MÊS (query params: ?mes=6&ano=2025)
-    app.get('/metas', async (req, res) => {
+    app.get('/metas', authMiddleware, async (req, res) => {
         const { mes, ano } = req.query;
 
         if (!mes || !ano) {
@@ -173,7 +174,7 @@ module.exports = (app) => {
     });
 
     // RELATÓRIO DE METAS VS FATURAMENTO REAL DO MÊS
-    app.get('/metas/relatorio', async (req, res) => {
+    app.get('/metas/relatorio', authMiddleware, async (req, res) => {
         const { mes, ano } = req.query;
 
         if (!mes || !ano) {
@@ -189,7 +190,7 @@ module.exports = (app) => {
     });
 
     // SALVAR META (cria ou atualiza — upsert)
-    app.post('/metas', async (req, res) => {
+    app.post('/metas', authMiddleware, async (req, res) => {
         try {
             const meta = await MetaDAO.salvar(req.body);
             res.status(201).json({ success: true, msg: 'Meta salva!', data: meta });
@@ -205,7 +206,7 @@ module.exports = (app) => {
     // ============================================================
 
     // LISTAR TODAS (query param: ?profissional_id=1 para filtrar)
-    app.get('/comissoes', async (req, res) => {
+    app.get('/comissoes', authMiddleware, async (req, res) => {
         try {
             const profissional_id = req.query.profissional_id || null;
             const lista = await ComissaoDAO.consultarTodos(profissional_id);
@@ -217,7 +218,7 @@ module.exports = (app) => {
 
     // SALVAR COMISSÃO (cria ou atualiza — upsert)
     // Se procedimento_id vier nulo, é a regra geral da profissional
-    app.post('/comissoes', async (req, res) => {
+    app.post('/comissoes', authMiddleware, async (req, res) => {
         try {
             const comissao = await ComissaoDAO.salvar(req.body);
             res.status(201).json({ success: true, msg: 'Comissão salva!', data: comissao });
@@ -228,7 +229,7 @@ module.exports = (app) => {
     });
 
     // EXCLUIR COMISSÃO
-    app.delete('/comissoes/:id', async (req, res) => {
+    app.delete('/comissoes/:id', authMiddleware, async (req, res) => {
         try {
             const rowCount = await ComissaoDAO.excluir(req.params.id);
             if (rowCount > 0) return res.json({ success: true, msg: 'Comissão removida!' });

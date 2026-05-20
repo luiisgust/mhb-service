@@ -1,3 +1,4 @@
+const { authMiddleware, requireRole } = require('../models/authModel');
 const {
     AgendamentoDAO,
     AgendamentoProcedimentoDAO,
@@ -14,7 +15,7 @@ module.exports = (app) => {
 
     // LISTAR COM FILTROS
     // query params: ?data=&profissional_id=&cliente_id=&unidade_id=&status=
-    app.get('/agendamentos', async (req, res) => {
+    app.get('/agendamentos', authMiddleware, async (req, res) => {
         try {
             const filtros = {
                 data:            req.query.data,
@@ -31,7 +32,7 @@ module.exports = (app) => {
     });
 
     // BUSCAR UM
-    app.get('/agendamentos/:id', async (req, res) => {
+    app.get('/agendamentos/:id', authMiddleware, async (req, res) => {
         try {
             const agendamento = await AgendamentoDAO.consultarUm(req.params.id);
             if (!agendamento) return res.status(404).json({ success: false, msg: 'Agendamento não encontrado.' });
@@ -43,7 +44,7 @@ module.exports = (app) => {
 
     // AGENDA DO DIA — agendamentos + bloqueios
     // query params: ?data=2025-06-10&unidade_id=1
-    app.get('/agenda/dia', async (req, res) => {
+    app.get('/agenda/dia', authMiddleware, async (req, res) => {
         const { data, unidade_id } = req.query;
 
         if (!data || !unidade_id) {
@@ -59,7 +60,7 @@ module.exports = (app) => {
     });
 
     // PRÓXIMOS AGENDAMENTOS DE UMA CLIENTE
-    app.get('/agendamentos/cliente/:cliente_id/proximos', async (req, res) => {
+    app.get('/agendamentos/cliente/:cliente_id/proximos', authMiddleware, async (req, res) => {
         try {
             const lista = await AgendamentoDAO.proximosDaCliente(req.params.cliente_id);
             res.json(lista);
@@ -69,7 +70,7 @@ module.exports = (app) => {
     });
 
     // AGENDAMENTOS FINALIZADOS MAS NÃO PAGOS
-    app.get('/agendamentos/nao-pagos', async (req, res) => {
+    app.get('/agendamentos/nao-pagos', authMiddleware, async (req, res) => {
         try {
             const lista = await AgendamentoDAO.naoPagos();
             res.json({ success: true, total: lista.length, data: lista });
@@ -80,7 +81,7 @@ module.exports = (app) => {
 
     // RELATÓRIO DE FALTAS POR PROFISSIONAL
     // query params: ?mes=6&ano=2025
-    app.get('/agendamentos/relatorio/faltas', async (req, res) => {
+    app.get('/agendamentos/relatorio/faltas', authMiddleware, async (req, res) => {
         const { mes, ano } = req.query;
 
         if (!mes || !ano) {
@@ -97,7 +98,7 @@ module.exports = (app) => {
 
     // RELATÓRIO DE FATURAMENTO POR PROFISSIONAL
     // query params: ?mes=6&ano=2025&unidade_id=1
-    app.get('/agendamentos/relatorio/faturamento', async (req, res) => {
+    app.get('/agendamentos/relatorio/faturamento', authMiddleware, async (req, res) => {
         const { mes, ano, unidade_id } = req.query;
 
         if (!mes || !ano) {
@@ -113,7 +114,7 @@ module.exports = (app) => {
     });
 
     // CADASTRAR AGENDAMENTO
-    app.post('/agendamentos', async (req, res) => {
+    app.post('/agendamentos', authMiddleware, async (req, res) => {
         try {
             const novo = await AgendamentoDAO.cadastrar(req.body);
             res.status(201).json({ success: true, msg: 'Agendamento criado!', data: novo });
@@ -124,7 +125,7 @@ module.exports = (app) => {
     });
 
     // ATUALIZAR AGENDAMENTO
-    app.put('/agendamentos/:id', async (req, res) => {
+    app.put('/agendamentos/:id', authMiddleware, async (req, res) => {
         try {
             const editado = await AgendamentoDAO.atualizar(req.params.id, req.body);
             res.json({ success: true, msg: 'Agendamento atualizado!', data: editado });
@@ -136,7 +137,7 @@ module.exports = (app) => {
     });
 
     // ATUALIZAR STATUS DO AGENDAMENTO
-    app.put('/agendamentos/:id/status', async (req, res) => {
+    app.put('/agendamentos/:id/status', authMiddleware, async (req, res) => {
         const { status, motivo_cancelamento, user_id } = req.body;
 
         if (!status) return res.status(400).json({ success: false, msg: 'O status é obrigatório.' });
@@ -152,7 +153,7 @@ module.exports = (app) => {
     });
 
     // EXCLUIR AGENDAMENTO
-    app.delete('/agendamentos/:id', async (req, res) => {
+    app.delete('/agendamentos/:id', authMiddleware, async (req, res) => {
         try {
             const rowCount = await AgendamentoDAO.excluir(req.params.id);
             if (rowCount > 0) return res.json({ success: true, msg: 'Agendamento removido!' });
@@ -168,7 +169,7 @@ module.exports = (app) => {
     // ============================================================
 
     // LISTAR PROCEDIMENTOS DE UM AGENDAMENTO
-    app.get('/agendamentos/:id/procedimentos', async (req, res) => {
+    app.get('/agendamentos/:id/procedimentos', authMiddleware, async (req, res) => {
         try {
             const lista = await AgendamentoProcedimentoDAO.consultarDoAgendamento(req.params.id);
             res.json(lista);
@@ -178,7 +179,7 @@ module.exports = (app) => {
     });
 
     // ADICIONAR PROCEDIMENTO AO AGENDAMENTO
-    app.post('/agendamentos/:id/procedimentos', async (req, res) => {
+    app.post('/agendamentos/:id/procedimentos', authMiddleware, async (req, res) => {
         const { procedimento_id, nome_snapshot, valor_snapshot, tempo_snapshot, desconto } = req.body;
 
         try {
@@ -195,7 +196,7 @@ module.exports = (app) => {
     });
 
     // REMOVER PROCEDIMENTO DO AGENDAMENTO
-    app.delete('/agendamentos/procedimentos/:id', async (req, res) => {
+    app.delete('/agendamentos/procedimentos/:id', authMiddleware, async (req, res) => {
         try {
             const rowCount = await AgendamentoProcedimentoDAO.excluir(req.params.id);
             if (rowCount > 0) return res.json({ success: true, msg: 'Procedimento removido do agendamento!' });
@@ -211,7 +212,7 @@ module.exports = (app) => {
     // ============================================================
 
     // FOTOS DE UM AGENDAMENTO
-    app.get('/agendamentos/:id/fotos', async (req, res) => {
+    app.get('/agendamentos/:id/fotos', authMiddleware, async (req, res) => {
         try {
             const lista = await AgendamentoFotoDAO.consultarDoAgendamento(req.params.id);
             res.json(lista);
@@ -221,7 +222,7 @@ module.exports = (app) => {
     });
 
     // TODAS AS FOTOS DE UMA CLIENTE
-    app.get('/clientes/:cliente_id/fotos', async (req, res) => {
+    app.get('/clientes/:cliente_id/fotos', authMiddleware, async (req, res) => {
         try {
             const lista = await AgendamentoFotoDAO.consultarDaCliente(req.params.cliente_id);
             res.json(lista);
@@ -231,7 +232,7 @@ module.exports = (app) => {
     });
 
     // ADICIONAR FOTO
-    app.post('/agendamentos/:id/fotos', async (req, res) => {
+    app.post('/agendamentos/:id/fotos', authMiddleware, async (req, res) => {
         const { cliente_id, tipo, url, descricao, criado_por } = req.body;
 
         try {
@@ -244,7 +245,7 @@ module.exports = (app) => {
     });
 
     // REMOVER FOTO
-    app.delete('/agendamentos/fotos/:id', async (req, res) => {
+    app.delete('/agendamentos/fotos/:id', authMiddleware, async (req, res) => {
         try {
             const rowCount = await AgendamentoFotoDAO.excluir(req.params.id);
             if (rowCount > 0) return res.json({ success: true, msg: 'Foto removida!' });
@@ -260,7 +261,7 @@ module.exports = (app) => {
     // ============================================================
 
     // ADICIONAR BLOQUEIO
-    app.post('/agenda/bloqueios', async (req, res) => {
+    app.post('/agenda/bloqueios', authMiddleware, async (req, res) => {
         try {
             const bloqueio = await BloqueioDAO.adicionar(req.body);
             res.status(201).json({ success: true, msg: 'Horário bloqueado!', data: bloqueio });
@@ -271,7 +272,7 @@ module.exports = (app) => {
     });
 
     // REMOVER BLOQUEIO
-    app.delete('/agenda/bloqueios/:id', async (req, res) => {
+    app.delete('/agenda/bloqueios/:id', authMiddleware, async (req, res) => {
         try {
             const rowCount = await BloqueioDAO.excluir(req.params.id);
             if (rowCount > 0) return res.json({ success: true, msg: 'Bloqueio removido!' });
@@ -286,7 +287,7 @@ module.exports = (app) => {
     // HISTÓRICO DO AGENDAMENTO
     // ============================================================
 
-    app.get('/agendamentos/:id/historico', async (req, res) => {
+    app.get('/agendamentos/:id/historico', authMiddleware, async (req, res) => {
         try {
             const historico = await HistoricoDAO.consultarDoAgendamento(req.params.id);
             res.json(historico);

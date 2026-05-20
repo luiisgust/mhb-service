@@ -1,3 +1,4 @@
+const { authMiddleware, requireRole } = require('../models/authModel');
 const { CaixaDAO, PagamentoDAO, VendaDAO, ComissaoGeradaDAO } = require('../models/financeiroModel');
 
 module.exports = (app) => {
@@ -7,7 +8,7 @@ module.exports = (app) => {
     // ============================================================
 
     // LISTAR TODOS OS CAIXAS
-    app.get('/caixa', async (req, res) => {
+    app.get('/caixa', authMiddleware, async (req, res) => {
         try {
             const lista = await CaixaDAO.consultarTodos();
             res.json(lista);
@@ -17,7 +18,7 @@ module.exports = (app) => {
     });
 
     // CAIXA ABERTO DE UMA UNIDADE (query param: ?unidade_id=1)
-    app.get('/caixa/aberto', async (req, res) => {
+    app.get('/caixa/aberto', authMiddleware, async (req, res) => {
         const { unidade_id } = req.query;
 
         if (!unidade_id) return res.status(400).json({ success: false, msg: 'Informe a unidade_id.' });
@@ -32,7 +33,7 @@ module.exports = (app) => {
     });
 
     // ABRIR CAIXA
-    app.post('/caixa/abrir', async (req, res) => {
+    app.post('/caixa/abrir', authMiddleware, async (req, res) => {
         const { unidade_id, valor_inicial, user_id } = req.body;
 
         if (!unidade_id) return res.status(400).json({ success: false, msg: 'A unidade é obrigatória.' });
@@ -47,7 +48,7 @@ module.exports = (app) => {
     });
 
     // FECHAR CAIXA
-    app.put('/caixa/:id/fechar', async (req, res) => {
+    app.put('/caixa/:id/fechar', authMiddleware, async (req, res) => {
         const { valor_final, user_id, observacoes } = req.body;
 
         if (valor_final === undefined || valor_final === null) {
@@ -69,7 +70,7 @@ module.exports = (app) => {
     // ============================================================
 
     // LISTAR MOVIMENTAÇÕES DE UM CAIXA
-    app.get('/caixa/:id/movimentacoes', async (req, res) => {
+    app.get('/caixa/:id/movimentacoes', authMiddleware, async (req, res) => {
         try {
             const lista = await CaixaDAO.consultarMovimentacoes(req.params.id);
             res.json(lista);
@@ -79,7 +80,7 @@ module.exports = (app) => {
     });
 
     // REGISTRAR MOVIMENTAÇÃO (sangria, reforço, outros)
-    app.post('/caixa/movimentacao', async (req, res) => {
+    app.post('/caixa/movimentacao', authMiddleware, async (req, res) => {
         try {
             const mov = await CaixaDAO.addMovimentacao(req.body);
             res.status(201).json({ success: true, msg: 'Movimentação registrada!', data: mov });
@@ -95,7 +96,7 @@ module.exports = (app) => {
     // ============================================================
 
     // PAGAMENTOS DE UM AGENDAMENTO
-    app.get('/pagamentos/agendamento/:agendamento_id', async (req, res) => {
+    app.get('/pagamentos/agendamento/:agendamento_id', authMiddleware, async (req, res) => {
         try {
             const lista = await PagamentoDAO.consultarDoAgendamento(req.params.agendamento_id);
             res.json(lista);
@@ -106,7 +107,7 @@ module.exports = (app) => {
 
     // REGISTRAR PAGAMENTO
     // Suporta: Dinheiro, PIX, Cartão Débito, Cartão Crédito (com bandeira, NSU, parcelas)
-    app.post('/pagamentos', async (req, res) => {
+    app.post('/pagamentos', authMiddleware, async (req, res) => {
         try {
             const pagamento = await PagamentoDAO.registrar(req.body);
             res.status(201).json({ success: true, msg: 'Pagamento registrado!', data: pagamento });
@@ -117,7 +118,7 @@ module.exports = (app) => {
     });
 
     // ESTORNAR PAGAMENTO
-    app.put('/pagamentos/:id/estornar', async (req, res) => {
+    app.put('/pagamentos/:id/estornar', authMiddleware, async (req, res) => {
         const { motivo, user_id } = req.body;
 
         if (!motivo) return res.status(400).json({ success: false, msg: 'O motivo do estorno é obrigatório.' });
@@ -134,7 +135,7 @@ module.exports = (app) => {
     // RELATÓRIO DE FATURAMENTO POR FORMA DE PAGAMENTO
     // query params: ?data_inicio=&data_fim=&unidade_id=&forma_pagamento=&bandeira=
     // Exemplo: /pagamentos/relatorio?forma_pagamento=Cartão Crédito&bandeira=Visa&unidade_id=1
-    app.get('/pagamentos/relatorio', async (req, res) => {
+    app.get('/pagamentos/relatorio', authMiddleware, async (req, res) => {
         try {
             const filtros = {
                 data_inicio:     req.query.data_inicio,
@@ -157,7 +158,7 @@ module.exports = (app) => {
 
     // LISTAR VENDAS
     // query params: ?cliente_id=&unidade_id=&data_inicio=&data_fim=
-    app.get('/vendas', async (req, res) => {
+    app.get('/vendas', authMiddleware, async (req, res) => {
         try {
             const filtros = {
                 cliente_id:  req.query.cliente_id,
@@ -173,7 +174,7 @@ module.exports = (app) => {
     });
 
     // REGISTRAR VENDA (com itens — baixa estoque automaticamente)
-    app.post('/vendas', async (req, res) => {
+    app.post('/vendas', authMiddleware, async (req, res) => {
         const { dados, itens } = req.body;
 
         if (!dados) return res.status(400).json({ success: false, msg: 'Informe os dados da venda.' });
@@ -195,7 +196,7 @@ module.exports = (app) => {
 
     // CONSULTAR COMISSÕES GERADAS
     // query params: ?profissional_id=&mes=&ano=&pago=false
-    app.get('/comissoes-geradas', async (req, res) => {
+    app.get('/comissoes-geradas', authMiddleware, async (req, res) => {
         try {
             const filtros = {
                 profissional_id: req.query.profissional_id || null,
@@ -212,7 +213,7 @@ module.exports = (app) => {
 
     // MARCAR COMISSÕES COMO PAGAS
     // body: { ids: [1, 2, 3] }
-    app.put('/comissoes-geradas/pagar', async (req, res) => {
+    app.put('/comissoes-geradas/pagar', authMiddleware, async (req, res) => {
         const { ids } = req.body;
 
         if (!ids || ids.length === 0) {

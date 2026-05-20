@@ -1,3 +1,4 @@
+const { authMiddleware, requireRole } = require('../models/authModel');
 const EstoqueDAO = require('../models/estoqueModel');
 
 module.exports = (app) => {
@@ -7,7 +8,7 @@ module.exports = (app) => {
     // ============================================================
 
     // LISTAR TODOS (query param: ?todos=true para incluir inativos)
-    app.get('/estoque', async (req, res) => {
+    app.get('/estoque', authMiddleware, async (req, res) => {
         try {
             const apenasAtivos = req.query.todos !== 'true';
             const lista = await EstoqueDAO.consultarTodos(apenasAtivos);
@@ -18,7 +19,7 @@ module.exports = (app) => {
     });
 
     // BUSCAR UM PRODUTO
-    app.get('/estoque/:id', async (req, res) => {
+    app.get('/estoque/:id', authMiddleware, async (req, res) => {
         try {
             const produto = await EstoqueDAO.consultarUm(req.params.id);
             if (!produto) return res.status(404).json({ success: false, msg: 'Produto não encontrado.' });
@@ -29,7 +30,7 @@ module.exports = (app) => {
     });
 
     // PRODUTOS COM ESTOQUE BAIXO
-    app.get('/estoque-baixo', async (req, res) => {
+    app.get('/estoque-baixo', authMiddleware, async (req, res) => {
         try {
             const lista = await EstoqueDAO.estoqueBaixo();
             res.json({
@@ -43,7 +44,7 @@ module.exports = (app) => {
     });
 
     // PRODUTOS VENCENDO (query param: ?dias=30)
-    app.get('/estoque-vencendo', async (req, res) => {
+    app.get('/estoque-vencendo', authMiddleware, async (req, res) => {
         try {
             const dias = parseInt(req.query.dias) || 30;
             const lista = await EstoqueDAO.estoqueVencendo(dias);
@@ -59,7 +60,7 @@ module.exports = (app) => {
     });
 
     // MOVIMENTAÇÕES DE UM PRODUTO
-    app.get('/estoque/:id/movimentacoes', async (req, res) => {
+    app.get('/estoque/:id/movimentacoes', authMiddleware, async (req, res) => {
         try {
             const lista = await EstoqueDAO.consultarMovimentacoes(req.params.id);
             res.json(lista);
@@ -74,7 +75,7 @@ module.exports = (app) => {
     // ============================================================
 
     // CADASTRAR PRODUTO
-    app.post('/estoque', async (req, res) => {
+    app.post('/estoque', authMiddleware, async (req, res) => {
         try {
             const novo = await EstoqueDAO.cadastrar(req.body);
             res.status(201).json({ success: true, msg: 'Produto cadastrado!', data: novo });
@@ -85,7 +86,7 @@ module.exports = (app) => {
     });
 
     // ATUALIZAR PRODUTO
-    app.put('/estoque/:id', async (req, res) => {
+    app.put('/estoque/:id', authMiddleware, async (req, res) => {
         try {
             const editado = await EstoqueDAO.atualizar(req.params.id, req.body);
             if (!editado) return res.status(404).json({ success: false, msg: 'Produto não encontrado.' });
@@ -102,7 +103,7 @@ module.exports = (app) => {
     // ============================================================
 
     // REPOR QUANTIDADE (entrada de produto)
-    app.post('/estoque/:id/repor', async (req, res) => {
+    app.post('/estoque/:id/repor', authMiddleware, async (req, res) => {
         const { quantidade, user_id, observacao } = req.body;
 
         if (!quantidade) return res.status(400).json({ success: false, msg: 'Informe a quantidade a repor.' });
@@ -125,7 +126,7 @@ module.exports = (app) => {
     // EXCLUIR
     // ============================================================
 
-    app.delete('/estoque/:id', async (req, res) => {
+    app.delete('/estoque/:id', authMiddleware, async (req, res) => {
         try {
             const rowCount = await EstoqueDAO.excluir(req.params.id);
             if (rowCount > 0) return res.json({ success: true, msg: 'Produto removido com sucesso!' });
