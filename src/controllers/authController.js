@@ -1,5 +1,8 @@
 const { AuthDAO, authMiddleware, requireRole } = require('../models/authModel');
 
+// ============================================================
+// EXPORTA COMO FUNÇÃO — padrão de todos os controllers
+// ============================================================
 module.exports = (app) => {
 
     // ============================================================
@@ -63,7 +66,7 @@ module.exports = (app) => {
     // GESTÃO DE USUÁRIOS (apenas admin/gerente)
     // ============================================================
 
-    // LISTAR TODOS OS USUÁRIOS
+    // LISTAR TODOS
     app.get('/users', authMiddleware, requireRole('admin', 'gerente'), async (req, res) => {
         try {
             const lista = await AuthDAO.consultarTodos();
@@ -73,7 +76,7 @@ module.exports = (app) => {
         }
     });
 
-    // BUSCAR UM USUÁRIO
+    // BUSCAR UM
     app.get('/users/:id', authMiddleware, requireRole('admin', 'gerente'), async (req, res) => {
         try {
             const user = await AuthDAO.consultarUm(req.params.id);
@@ -84,7 +87,7 @@ module.exports = (app) => {
         }
     });
 
-    // CADASTRAR NOVO USUÁRIO (apenas admin)
+    // CADASTRAR (apenas admin)
     app.post('/users', authMiddleware, requireRole('admin'), async (req, res) => {
         const { nome, email, senha, role, unidade_id } = req.body;
 
@@ -98,7 +101,7 @@ module.exports = (app) => {
         }
     });
 
-    // ATUALIZAR USUÁRIO (apenas admin)
+    // ATUALIZAR (apenas admin)
     app.put('/users/:id', authMiddleware, requireRole('admin'), async (req, res) => {
         const { nome, email, role, unidade_id, ativo } = req.body;
 
@@ -115,9 +118,8 @@ module.exports = (app) => {
         }
     });
 
-    // EXCLUIR USUÁRIO (apenas admin)
+    // EXCLUIR (apenas admin)
     app.delete('/users/:id', authMiddleware, requireRole('admin'), async (req, res) => {
-        // Impede que o admin exclua a si mesmo
         if (req.params.id == req.user.id) {
             return res.status(400).json({ success: false, msg: 'Você não pode excluir seu próprio usuário.' });
         }

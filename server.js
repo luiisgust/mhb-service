@@ -14,8 +14,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // ============================================================
 // CONTROLLERS
-// Ordem importa: auth primeiro, pois os demais podem usar
-// o authMiddleware exportado pelo authModel
+// Auth primeiro — os demais dependem do authMiddleware
 // ============================================================
 const controllers = [
     require('./src/controllers/authController'),
@@ -29,7 +28,16 @@ const controllers = [
     require('./src/controllers/cursosController'),
 ];
 
-controllers.forEach(controller => controller(app));
+controllers.forEach(controller => {
+    // Garante que só tenta chamar se for função
+    if (typeof controller === 'function') {
+        controller(app);
+    } else if (typeof controller.default === 'function') {
+        controller.default(app);
+    } else {
+        console.warn('⚠️  Controller ignorado — não é uma função:', controller);
+    }
+});
 
 
 // ============================================================
@@ -46,7 +54,7 @@ app.get('/', (req, res) => {
 
 
 // ============================================================
-// TRATAMENTO DE ROTA NÃO ENCONTRADA (404)
+// ROTA NÃO ENCONTRADA (404)
 // ============================================================
 app.use((req, res) => {
     res.status(404).json({
@@ -57,8 +65,7 @@ app.use((req, res) => {
 
 
 // ============================================================
-// TRATAMENTO DE ERROS GLOBAIS (500)
-// Captura qualquer erro não tratado nos controllers
+// ERROS GLOBAIS (500)
 // ============================================================
 app.use((err, req, res, next) => {
     console.error('❌ Erro não tratado:', err.message);

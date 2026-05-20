@@ -1386,6 +1386,19 @@ class Database {
     return res.rows;
   }
 
+  // Histórico de status de um agendamento
+  async getHistoricoAgendamento(agendamento_id) {
+    const res = await this.#query(
+      `SELECT h.*, u.nome as user_nome
+       FROM agendamento_historico h
+       LEFT JOIN users u ON h.user_id = u.id
+       WHERE h.agendamento_id = $1
+       ORDER BY h.criado_em ASC`,
+      [agendamento_id]
+    );
+    return res.rows;
+  }
+
   // Agendamentos que foram finalizados mas não pagos
   async agendamentosNaoPagos() {
     const res = await this.#query(
