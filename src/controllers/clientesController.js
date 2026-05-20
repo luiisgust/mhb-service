@@ -1,73 +1,175 @@
-const ClienteDAO = require('../models/clientesModel');
+const { ClienteDAO, AnamneseDAO, CreditoDAO } = require('../models/clientesModel');
 
 module.exports = (app) => {
 
-    // LISTAR TODOS OS CLIENTES
-    app.get("/cliente", async (req, res) => {
+    // ============================================================
+    // CLIENTES
+    // ============================================================
+
+    // LISTAR TODAS
+    app.get('/clientes', async (req, res) => {
         try {
             const lista = await ClienteDAO.consultarTodos();
             res.json(lista);
         } catch (error) {
-            res.status(500).json({ 
-                success: false, 
-                error: "Erro ao buscar clientes", 
-                details: error.message 
-            });
+            res.status(500).json({ success: false, error: 'Erro ao buscar clientes.', details: error.message });
         }
     });
 
-    // BUSCAR UM CLIENTE POR ID
-    app.get("/cliente/:id", async (req, res) => {
+    // BUSCAR UMA
+    app.get('/clientes/:id', async (req, res) => {
         try {
             const cliente = await ClienteDAO.consultarUm(req.params.id);
-            if (cliente) {
-                res.json(cliente);
-            } else {
-                res.status(404).json({ success: false, msg: "Cliente não encontrado" });
-            }
+            if (!cliente) return res.status(404).json({ success: false, msg: 'Cliente não encontrada.' });
+            res.json(cliente);
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }
     });
 
-    // SALVAR (CADASTRO OU EDIÇÃO)
-    app.post('/cliente', async (req, res) => {
-        const { id, nome, telefone, aniversario } = req.body;
-
+    // BUSCAR POR NOME OU TELEFONE (query param: ?termo=ana)
+    app.get('/clientes/buscar/:termo', async (req, res) => {
         try {
-            if (!id) {
-                // Cadastro Novo
-                const novo = await ClienteDAO.cadastrar(nome, telefone, aniversario);
-                res.status(201).json({ success: true, msg: "Cliente cadastrado!", data: novo });
-            } else {
-                // Atualização
-                const editado = await ClienteDAO.atualizar(id, nome, telefone, aniversario);
-                if (editado) {
-                    res.json({ success: true, msg: "Cliente atualizado!", data: editado });
-                } else {
-                    res.status(404).json({ success: false, msg: "Cliente não encontrado." });
-                }
-            }
+            const lista = await ClienteDAO.buscar(req.params.termo);
+            res.json(lista);
         } catch (error) {
-            res.status(500).json({ success: false, msg: error.message });
+            const status = error.message.includes('Informe') ? 400 : 500;
+            res.status(status).json({ success: false, error: error.message });
         }
     });
 
-    // EXCLUIR CLIENTE
-    app.delete("/cliente/:id", async (req, res) => {
+    // ANIVERSARIANTES DO MÊS (query param: ?mes=6 — padrão: mês atual)
+    app.get('/clientes/aniversariantes', async (req, res) => {
+        try {
+            const lista = await ClienteDAO.aniversariantes(req.query.mes);
+            res.json({ success: true, total: lista.length, data: lista });
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
+    // CLIENTES INATIVAS HÁ X DIAS (query param: ?dias=60)
+    app.get('/clientes/inativas', async (req, res) => {
+        try {
+            const dias = parseInt(req.query.dias) || 60;
+            const lista = await ClienteDAO.inativos(dias);
+            res.json({ success: true, dias_sem_visita: dias, total: lista.length, data: lista });
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
+    // CADASTRAR
+    app.post('/clientes', async (req, res) => {
+        try {
+            const nova = await ClienteDAO.cadastrar(req.body);
+            res.status(201).json({ success: true, msg: 'Cliente cadastrada!', data: nova });
+        } catch (error) {
+            const status = error.message.includes('obrigatório') ? 400 : 500;
+            res.status(status).json({ success: false, msg: error.message });
+        }
+    });
+
+    // ATUALIZAR
+    app.put('/clientes/:id', async (req, res) => {
+        try {
+            const editada = await ClienteDAO.atualizar(req.params.id, req.body);
+            if (!editada) return res.status(404).json({ success: false, msg: 'Cliente não encontrada.' });
+            res.json({ success: true, msg: 'Cliente atualizada!', data: editada });
+        } catch (error) {
+            const status = error.message.includes('obrigatório') ? 400 : 500;
+            res.status(status).json({ success: false, msg: error.message });
+        }
+    });
+
+    // INATIVAR (soft delete — não apaga do banco)
+    app.put('/clientes/:id/inativar', async (req, res) => {
+        try {
+            await ClienteDAO.inativar(req.params.id);
+            res.json({ success: true, msg: 'Cliente inativada com sucesso!' });
+        } catch (error) {
+            const status = error.message.includes('não encontrada') ? 404 : 500;
+            res.status(status).json({ success: false, msg: error.message });
+        }
+    });
+
+    // EXCLUIR (hard delete — use com cuidado)
+    app.delete('/clientes/:id', async (req, res) => {
         try {
             const rowCount = await ClienteDAO.excluir(req.params.id);
-            if (rowCount > 0) {
-                res.json({ success: true, msg: "Cliente removido com sucesso!" });
-            } else {
-                res.status(404).json({ success: false, msg: "Cliente não encontrado." });
-            }
+            if (rowCount > 0) return res.json({ success: true, msg: 'Cliente removida com sucesso!' });
+            res.status(404).json({ success: false, msg: 'Cliente não encontrada.' });
         } catch (error) {
-            res.status(400).json({ 
-                success: false, 
-                msg: "Erro ao excluir: Verifique se este cliente possui agendamentos ou vendas vinculadas.",
+            res.status(400).json({
+                success: false,
+                msg: 'Não foi possível excluir. Verifique se existem agendamentos vinculados a esta cliente.',
                 details: error.message
             });
         }
     });
-}
+
+
+    // ============================================================
+    // ANAMNESE
+    // ============================================================
+
+    // CONSULTAR ANAMNESE DA CLIENTE
+    app.get('/clientes/:id/anamnese', async (req, res) => {
+        try {
+            const anamnese = await AnamneseDAO.consultarDaCliente(req.params.id);
+            if (!anamnese) return res.status(404).json({ success: false, msg: 'Anamnese não preenchida ainda.' });
+            res.json(anamnese);
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
+    // SALVAR ANAMNESE (cria ou atualiza — upsert)
+    app.post('/clientes/:id/anamnese', async (req, res) => {
+        try {
+            const { user_id, ...dados } = req.body;
+            const anamnese = await AnamneseDAO.salvar(req.params.id, dados, user_id);
+            res.status(201).json({ success: true, msg: 'Anamnese salva!', data: anamnese });
+        } catch (error) {
+            const status = error.message.includes('obrigatória') ? 400 : 500;
+            res.status(status).json({ success: false, msg: error.message });
+        }
+    });
+
+
+    // ============================================================
+    // CRÉDITOS DA CLIENTE
+    // ============================================================
+
+    // HISTÓRICO DE CRÉDITOS
+    app.get('/clientes/:id/creditos', async (req, res) => {
+        try {
+            const historico = await CreditoDAO.historico(req.params.id);
+            res.json(historico);
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
+    // ADICIONAR CRÉDITO OU DÉBITO MANUAL
+    app.post('/clientes/:id/creditos', async (req, res) => {
+        try {
+            const credito = await CreditoDAO.adicionar({
+                cliente_id: req.params.id,
+                ...req.body
+            });
+            res.status(201).json({ success: true, msg: 'Movimentação de crédito registrada!', data: credito });
+        } catch (error) {
+            const status = error.message.includes('obrigatório') || error.message.includes('zero') || error.message.includes('insuficiente') ? 400 : 500;
+            res.status(status).json({ success: false, msg: error.message });
+        }
+    });
+
+
+    // ============================================================
+    // STATUS DO MÓDULO
+    // ============================================================
+    app.get('/clientes-status', (req, res) => {
+        res.json({ modulo: 'Clientes (Clientes, Anamnese, Créditos)', online: true, database: 'PostgreSQL' });
+    });
+};

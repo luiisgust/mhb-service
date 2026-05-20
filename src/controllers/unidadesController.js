@@ -2,83 +2,73 @@ const UnidadeDAO = require('../models/unidadesModel');
 
 module.exports = (app) => {
 
-    // LISTAR TODAS AS UNIDADES
-    app.get("/unidade", async (req, res) => {
+    // LISTAR TODAS
+    app.get('/unidades', async (req, res) => {
         try {
             const lista = await UnidadeDAO.consultarTodos();
             res.json(lista);
         } catch (error) {
-            res.status(500).json({ 
-                success: false, 
-                error: "Erro ao buscar unidades", 
-                details: error.message 
-            });
+            res.status(500).json({ success: false, error: 'Erro ao buscar unidades.', details: error.message });
         }
     });
 
-    // BUSCAR UMA UNIDADE ESPECÍFICA
-    app.get("/unidade/:id", async (req, res) => {
+    // BUSCAR UMA
+    app.get('/unidades/:id', async (req, res) => {
         try {
             const unidade = await UnidadeDAO.consultarUm(req.params.id);
-            if (unidade) {
-                res.json(unidade);
-            } else {
-                res.status(404).json({ success: false, msg: "Unidade não encontrada" });
-            }
+            if (!unidade) return res.status(404).json({ success: false, msg: 'Unidade não encontrada.' });
+            res.json(unidade);
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }
     });
 
-    // SALVAR (CRIAÇÃO OU EDIÇÃO)
-    // Se o corpo (body) vier com ID, ele atualiza. Se vier sem, ele cria.
-    app.post('/unidade', async (req, res) => {
-        const { id, nome, localidade } = req.body;
+    // CADASTRAR
+    app.post('/unidades', async (req, res) => {
+        const { nome, endereco, cidade } = req.body;
+
+        if (!nome) return res.status(400).json({ success: false, msg: 'O campo nome é obrigatório.' });
 
         try {
-            if (!id) {
-                // Cadastro Novo
-                const nova = await UnidadeDAO.cadastrar(nome, localidade);
-                res.status(201).json({ success: true, msg: "Unidade cadastrada!", data: nova });
-            } else {
-                // Atualização
-                const editada = await UnidadeDAO.atualizar(id, nome, localidade);
-                if (editada) {
-                    res.json({ success: true, msg: "Unidade atualizada!", data: editada });
-                } else {
-                    res.status(404).json({ success: false, msg: "Unidade não encontrada para atualizar." });
-                }
-            }
+            const nova = await UnidadeDAO.cadastrar(nome, endereco, cidade);
+            res.status(201).json({ success: true, msg: 'Unidade cadastrada!', data: nova });
         } catch (error) {
             res.status(500).json({ success: false, msg: error.message });
         }
     });
 
-    // EXCLUIR UNIDADE
-    app.delete("/unidade/:id", async (req, res) => {
+    // ATUALIZAR
+    app.put('/unidades/:id', async (req, res) => {
+        const { nome, endereco, cidade, ativa } = req.body;
+
+        if (!nome) return res.status(400).json({ success: false, msg: 'O campo nome é obrigatório.' });
+
+        try {
+            const editada = await UnidadeDAO.atualizar(req.params.id, nome, endereco, cidade, ativa);
+            if (!editada) return res.status(404).json({ success: false, msg: 'Unidade não encontrada.' });
+            res.json({ success: true, msg: 'Unidade atualizada!', data: editada });
+        } catch (error) {
+            res.status(500).json({ success: false, msg: error.message });
+        }
+    });
+
+    // EXCLUIR
+    app.delete('/unidades/:id', async (req, res) => {
         try {
             const rowCount = await UnidadeDAO.excluir(req.params.id);
-            if (rowCount > 0) {
-                res.json({ success: true, msg: "Unidade removida com sucesso!" });
-            } else {
-                res.status(404).json({ success: false, msg: "Unidade não encontrada." });
-            }
+            if (rowCount > 0) return res.json({ success: true, msg: 'Unidade removida com sucesso!' });
+            res.status(404).json({ success: false, msg: 'Unidade não encontrada.' });
         } catch (error) {
-            // Tratamento de erro para Foreign Key (Chave Estrangeira)
-            res.status(400).json({ 
-                success: false, 
-                msg: "Não foi possível excluir. Verifique se existem profissionais ou agendamentos vinculados a esta unidade.",
+            res.status(400).json({
+                success: false,
+                msg: 'Não foi possível excluir. Verifique se existem profissionais ou agendamentos vinculados.',
                 details: error.message
             });
         }
     });
 
-    // ROTA DE STATUS (Para testes rápidos)
-    app.get("/unidade-status", (req, res) => {
-        res.json({ 
-            modulo: "Unidades", 
-            online: true, 
-            database: "PostgreSQL" 
-        });
+    // STATUS DO MÓDULO
+    app.get('/unidades-status', (req, res) => {
+        res.json({ modulo: 'Unidades', online: true, database: 'PostgreSQL' });
     });
-}
+};

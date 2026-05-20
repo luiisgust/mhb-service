@@ -1,58 +1,61 @@
-const DatabasePG = require('../../repository/database.js');
+const db = require('../../repository/database.js');
 
-// 1. A Entidade (O Molde do Dado)
+// ============================================================
+// ENTIDADE
+// ============================================================
 class Unidade {
-    #id;
-    #nome;
-    #localidade;
+    #id; #nome; #endereco; #cidade; #ativa; #criado_em; #atualizado_em;
 
-    constructor(id, nome, localidade) {
-        this.#id = id;
-        this.#nome = nome;
-        this.#localidade = localidade;
+    constructor(r) {
+        this.#id           = r.id;
+        this.#nome         = r.nome;
+        this.#endereco     = r.endereco;
+        this.#cidade       = r.cidade;
+        this.#ativa        = r.ativa;
+        this.#criado_em    = r.criado_em;
+        this.#atualizado_em = r.atualizado_em;
     }
-
-    get id() { return this.#id; }
-    get nome() { return this.#nome; }
-    get localidade() { return this.#localidade; }
 
     toJSON() {
         return {
-            id: this.#id,
-            nome: this.#nome,
-            localidade: this.#localidade
+            id:            this.#id,
+            nome:          this.#nome,
+            endereco:      this.#endereco,
+            cidade:        this.#cidade,
+            ativa:         this.#ativa,
+            criado_em:     this.#criado_em,
+            atualizado_em: this.#atualizado_em
         };
     }
 }
 
-// 2. O DAO (A Lógica de acesso ao Banco)
+// ============================================================
+// DAO
+// ============================================================
 class UnidadeDAO {
-    
+
     async consultarTodos() {
-        const rows = await DatabasePG.selectUnidades();
-        // Transformamos as linhas puras do banco em objetos da classe Unidade
-        return rows.map(r => new Unidade(r.id, r.nome, r.localidade).toJSON());
+        const rows = await db.selectUnidades();
+        return rows.map(r => new Unidade(r).toJSON());
     }
 
     async consultarUm(id) {
-        const rows = await DatabasePG.selectUnidades();
-        const row = rows.find(r => r.id == id);
-        return row ? new Unidade(row.id, row.nome, row.localidade).toJSON() : null;
+        const row = await db.getUnidadeById(id);
+        return row ? new Unidade(row).toJSON() : null;
     }
 
-    async cadastrar(nome, localidade) {
-        const row = await DatabasePG.addUnidade(nome, localidade);
-        return row ? new Unidade(row.id, row.nome, row.localidade).toJSON() : null;
+    async cadastrar(nome, endereco, cidade) {
+        const row = await db.addUnidade(nome, endereco, cidade);
+        return row ? new Unidade(row).toJSON() : null;
     }
 
-    async atualizar(id, nome, localidade) {
-        const row = await DatabasePG.updateUnidade(id, nome, localidade);
-        return row ? new Unidade(row.id, row.nome, row.localidade).toJSON() : null;
+    async atualizar(id, nome, endereco, cidade, ativa) {
+        const row = await db.updateUnidade(id, nome, endereco, cidade, ativa);
+        return row ? new Unidade(row).toJSON() : null;
     }
 
     async excluir(id) {
-        // Usando o método genérico deleteById que criamos no database.js
-        return await DatabasePG.deleteById('unidades', id);
+        return await db.deleteById('unidades', id);
     }
 }
 
